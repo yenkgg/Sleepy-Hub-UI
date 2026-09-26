@@ -1,257 +1,305 @@
 --[[
     ============================================================
-    Example script for Sleepy Hub UI Library
+    Milenium / Nebula UI - Example Script
     ============================================================
+    Loads the library and builds a demo menu with tabs, sections,
+    toggles, sliders, dropdowns, colorpickers, keybinds, buttons,
+    textboxes, and lists.
 ]]
 
 -- ============================================================
 -- 1. LOAD THE LIBRARY
 -- ============================================================
-local Library = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/yenkgg/Sleepy-Hub-UI/refs/heads/main/Library.lua"
+local library = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/i77lhm/Libraries/refs/heads/main/Millenium/Library.lua"
 ))()
 
 -- ============================================================
 -- 2. CREATE THE WINDOW
 -- ============================================================
-local Window = Library:CreateWindow({
-    Title    = "Example Hub",
-    Center   = true,
-    AutoShow = true
-})
-
--- Optional: set the toggle keybind after creation
-Library.ToggleKeybind = Enum.KeyCode.RightShift
-
--- ============================================================
--- 3. CREATE TABS
--- ============================================================
-local MainTab = Window:CreateTab({
-    Name  = "Main",
-    Icon  = "rbxassetid://6031075931",
-    Color = Color3.fromRGB(0, 85, 255)
-})
-
-local CombatTab = Window:CreateTab({
-    Name  = "Combat",
-    Icon  = "rbxassetid://6031090990",
-    Color = Color3.fromRGB(255, 60, 60)
-})
-
-local VisualsTab = Window:CreateTab({
-    Name  = "Visuals",
-    Icon  = "rbxassetid://6031091004",
-    Color = Color3.fromRGB(100, 220, 100)
-})
-
-local MiscTab = Window:CreateTab({
-    Name  = "Misc",
-    Icon  = "rbxassetid://6031094667",
-    Color = Color3.fromRGB(255, 180, 0)
+local window = library:window({
+    name     = "example",
+    suffix   = "hub",
+    gameInfo = "Example Hub for Roblox"
 })
 
 -- ============================================================
--- 4. MAIN TAB
+-- 3. MAIN TAB  (single "Main" sub-tab)
 -- ============================================================
-local MainBox = MainTab:AddLeftGroupbox("Welcome")
+window:seperator({ name = "Main" })
 
-MainBox:AddLabel("Welcome to Example Hub!")
+local mainTab = window:tab({ name = "Main", tabs = { "Main" } })
 
-MainBox:AddButton({
-    Text = "Print Hello",
-    Func = function()
-        print("Hello from Example Hub!")
-        Library:Notify("You clicked Print Hello", 3)
-    end
-})
+do
+    -- Left column
+    local leftColumn  = mainTab:column({})
+    local leftSection = leftColumn:section({
+        name    = "General",
+        default = true,
+        icon    = "rbxassetid://6022668898"
+    })
 
-MainBox:AddDivider()
+    leftSection:label({
+        name = "Welcome!",
+        info = "This is an example menu built with the Milenium library."
+    })
 
-MainBox:AddLabel("This is a divider example.")
-
--- ============================================================
--- 5. COMBAT TAB
--- ============================================================
-local AimbotBox = CombatTab:AddLeftGroupbox("Aimbot")
-
-AimbotBox:AddToggle(1, {
-    Text     = "Enable Aimbot",
-    Default  = false,
-    Callback = function(state)
-        print("Aimbot:", state)
-    end
-})
-
-AimbotBox:AddKeyPicker(2, {
-    Default  = "E",
-    Text     = "Aimbot Key",
-    Mode     = "Toggle",
-    Callback = function(state)
-        print("Aimbot key state:", state)
-    end
-})
-
-AimbotBox:AddSlider(3, {
-    Text     = "FOV",
-    Default  = 90,
-    Min      = 0,
-    Max      = 360,
-    Rounding = 0,
-    Suffix   = "°",
-    Callback = function(value)
-        print("FOV:", value)
-    end
-})
-
-AimbotBox:AddSlider(4, {
-    Text     = "Smoothing",
-    Default  = 0.15,
-    Min      = 0.01,
-    Max      = 1,
-    Rounding = 2,
-    Suffix   = "",
-    Callback = function(value)
-        print("Smoothing:", value)
-    end
-})
-
-AimbotBox:AddDropdown(5, {
-    Text     = "Target Part",
-    Values   = { "Head", "Torso", "Nearest", "Random" },
-    Default  = "Head",
-    Multi    = false,
-    Callback = function(option)
-        print("Targeting:", option)
-    end
-})
-
-AimbotBox:AddDropdown(6, {
-    Text     = "Target Teams",
-    Values   = { "Enemies", "Neutrals", "Allies" },
-    Default  = { "Enemies" },
-    Multi    = true,
-    Callback = function(selected)
-        local str = ""
-        for _, v in pairs(selected) do str = str .. v .. ", " end
-        print("Targeting:", str)
-    end
-})
-
-local VisualsAimBox = CombatTab:AddRightGroupbox("Visuals")
-
-VisualsAimBox:AddColorPicker(7, {
-    Title    = "Box Color",
-    Default  = Color3.fromRGB(255, 60, 60),
-    Callback = function(color)
-        print("Box color:", color)
-    end
-})
-
--- ============================================================
--- 6. VISUALS TAB
--- ============================================================
-local ESPBox = VisualsTab:AddLeftGroupbox("ESP")
-
-ESPBox:AddToggle(10, {
-    Text     = "Player ESP",
-    Default  = false,
-    Callback = function(state) print("Player ESP:", state) end
-})
-
-ESPBox:AddToggle(11, {
-    Text     = "Boxes",
-    Default  = true,
-    Callback = function(state) print("Boxes:", state) end
-})
-
-ESPBox:AddToggle(12, {
-    Text     = "Names",
-    Default  = true,
-    Callback = function(state) print("Names:", state) end
-})
-
-ESPBox:AddSlider(13, {
-    Text     = "Max Distance",
-    Default  = 1500,
-    Min      = 100,
-    Max      = 5000,
-    Rounding = 0,
-    Suffix   = " studs",
-    Callback = function(v) print("Max distance:", v) end
-})
-
-local ESPColorBox = VisualsTab:AddRightGroupbox("Colors")
-
-ESPColorBox:AddColorPicker(14, {
-    Title    = "ESP Color",
-    Default  = Color3.fromRGB(60, 180, 255),
-    Callback = function(color) print("ESP color:", color) end
-})
-
--- ============================================================
--- 7. MISC TAB
--- ============================================================
-local MiscBox = MiscTab:AddLeftGroupbox("Character")
-
-MiscBox:AddSlider(20, {
-    Text     = "WalkSpeed",
-    Default  = 16,
-    Min      = 16,
-    Max      = 200,
-    Rounding = 0,
-    Suffix   = "",
-    Callback = function(value)
-        local char = game.Players.LocalPlayer.Character
-        if char and char:FindFirstChildOfClass("Humanoid") then
-            char:FindFirstChildOfClass("Humanoid").WalkSpeed = value
+    leftSection:toggle({
+        name      = "Enable Feature",
+        default   = false,
+        seperator = true,
+        callback  = function(bool)
+            print("[Example] Enable Feature:", bool)
         end
-    end
-})
+    })
 
-MiscBox:AddSlider(21, {
-    Text     = "JumpPower",
-    Default  = 50,
-    Min      = 50,
-    Max      = 500,
-    Rounding = 0,
-    Suffix   = "",
-    Callback = function(value)
-        local char = game.Players.LocalPlayer.Character
-        if char and char:FindFirstChildOfClass("Humanoid") then
-            char:FindFirstChildOfClass("Humanoid").JumpPower = value
+    leftSection:slider({
+        name      = "Speed",
+        min       = 16,
+        max       = 200,
+        interval  = 1,
+        default   = 16,
+        suffix    = " ws",
+        seperator = true,
+        callback  = function(value)
+            print("[Example] Speed:", value)
+            local char = game.Players.LocalPlayer.Character
+            if char and char:FindFirstChildOfClass("Humanoid") then
+                char:FindFirstChildOfClass("Humanoid").WalkSpeed = value
+            end
         end
-    end
-})
+    })
 
-MiscBox:AddInput(22, {
-    Text        = "Chat Message",
-    Default     = "",
-    Placeholder = "Type something...",
-    Callback    = function(text)
-        print("You typed:", text)
-    end
-})
+    leftSection:slider({
+        name      = "Jump Power",
+        min       = 50,
+        max       = 500,
+        interval  = 5,
+        default   = 50,
+        suffix    = "",
+        seperator = true,
+        callback  = function(value)
+            local char = game.Players.LocalPlayer.Character
+            if char and char:FindFirstChildOfClass("Humanoid") then
+                char:FindFirstChildOfClass("Humanoid").JumpPower = value
+            end
+        end
+    })
 
-MiscBox:AddButton({
-    Text = "Reset Character",
-    Func = function()
-        local char = game.Players.LocalPlayer.Character
-        if char then char:BreakJoints() end
-    end
-})
+    leftSection:dropdown({
+        name      = "Mode",
+        items     = { "Legit", "Rage", "Custom" },
+        default   = "Legit",
+        seperator = true,
+        callback  = function(option)
+            print("[Example] Mode:", option)
+        end
+    })
 
-local MiscBoxRight = MiscTab:AddRightGroupbox("Notifications")
+    leftSection:dropdown({
+        name      = "Flags",
+        items     = { "Scoped", "Flashed", "Knocked", "Touched" },
+        default   = { "Scoped", "Flashed" },
+        multi     = true,
+        seperator = true,
+        callback  = function(selected)
+            local str = ""
+            for _, v in pairs(selected) do str = str .. v .. ", " end
+            print("[Example] Flags:", str)
+        end
+    })
 
-MiscBoxRight:AddButton({
-    Text = "Send Notification",
-    Func = function()
-        Library:Notify("This is a test notification!", 3)
-    end
-})
+    -- Right column
+    local rightColumn  = mainTab:column({})
+    local rightSection = rightColumn:section({
+        name    = "Appearance",
+        default = true,
+        icon    = "rbxassetid://129380150574313"
+    })
+
+    rightSection:colorpicker({
+        name      = "Accent Color",
+        color     = Color3.fromRGB(155, 150, 219),
+        seperator = true,
+        callback  = function(color, alpha)
+            print("[Example] Color:", color, "Alpha:", alpha)
+        end
+    })
+
+    rightSection:keybind({
+        name     = "Toggle Menu",
+        mode     = "Toggle",
+        default  = false,
+        callback = function(active)
+            window.toggle_menu(not active)
+        end
+    })
+
+    rightSection:keybind({
+        name     = "Panic Key",
+        mode     = "Hold",
+        callback = function(active)
+            print("[Example] Panic:", active)
+        end
+    })
+
+    rightSection:button({
+        name     = "Print Hello",
+        callback = function()
+            print("[Example] Hello!")
+        end
+    })
+
+    rightSection:button({
+        name     = "Reset Character",
+        callback = function()
+            local char = game.Players.LocalPlayer.Character
+            if char then char:BreakJoints() end
+        end
+    })
+end
 
 -- ============================================================
--- 8. INITIAL NOTIFICATION
+-- 4. VISUALS TAB  (multi-tab: Enemies / Teammates / Self)
 -- ============================================================
-Library:Notify("Example Hub loaded successfully!", 4)
+window:seperator({ name = "Visuals" })
+
+local enemiesTab, teammatesTab, selfTab = window:tab({
+    name = "Visuals",
+    tabs = { "Enemies", "Teammates", "Self" }
+})
+
+for _, tab in { enemiesTab, teammatesTab, selfTab } do
+    local column  = tab:column({})
+    local section = column:section({
+        name    = "ESP",
+        default = true,
+        icon    = "rbxassetid://6022668898"
+    })
+
+    section:toggle({
+        name      = "Enable ESP",
+        default   = false,
+        seperator = true,
+        callback  = function(bool) print("ESP:", bool) end
+    })
+
+    section:toggle({
+        name      = "Through Walls",
+        default   = false,
+        seperator = true
+    })
+
+    -- Toggle with a chained colorpicker
+    section:toggle({
+        name      = "Box",
+        default   = true,
+        seperator = true
+    }):colorpicker({
+        name  = "Box Color",
+        color = Color3.fromRGB(255, 60, 60)
+    })
+
+    -- Toggle with a settings sub-menu
+    local nameToggle = section:toggle({
+        name      = "Name",
+        default   = true,
+        seperator = true
+    })
+    nameToggle:colorpicker({ name = "Name Color" })
+
+    local nameSettings = nameToggle:settings({})
+    nameSettings:toggle({
+        name      = "Show Display Names",
+        default   = false,
+        seperator = true
+    })
+    nameSettings:dropdown({
+        name      = "Font",
+        items     = { "ProggyTiny", "MonoSpace", "Tahoma" },
+        default   = "MonoSpace",
+        seperator = true
+    })
+    nameSettings:slider({
+        name      = "Text Size",
+        min       = 8,
+        max       = 24,
+        interval  = 1,
+        default   = 14,
+        seperator = true
+    })
+
+    section:slider({
+        name      = "Max Distance",
+        min       = 100,
+        max       = 5000,
+        interval  = 100,
+        default   = 1500,
+        suffix    = " studs",
+        seperator = false
+    })
+end
+
+-- ============================================================
+-- 5. MISC TAB  (2-column layout with sub-tab)
+-- ============================================================
+window:seperator({ name = "Misc" })
+
+local miscTab = window:tab({ name = "Misc", tabs = { "Misc" } })
+
+do
+    local column = miscTab:column({})
+
+    -- Two side-by-side sections using size = 0.5
+    local sectionA = column:section({
+        name    = "Section A",
+        default = true,
+        size    = 0.5,
+        icon    = "rbxassetid://6022668898"
+    })
+    sectionA:toggle({ name = "A Toggle 1", default = false, seperator = true })
+    sectionA:toggle({ name = "A Toggle 2", default = true,  seperator = true })
+    sectionA:button({
+        name     = "A Button",
+        callback = function() print("A pressed") end
+    })
+
+    local sectionB = column:section({
+        name    = "Section B",
+        default = true,
+        size    = 0.5,
+        icon    = "rbxassetid://6022668898"
+    })
+    sectionB:toggle({ name = "B Toggle 1", default = false, seperator = true })
+    sectionB:slider({
+        name      = "B Slider",
+        min       = 0,
+        max       = 100,
+        interval  = 1,
+        default   = 50,
+        seperator = true
+    })
+    sectionB:textbox({
+        name        = "B Textbox",
+        placeholder = "Type here...",
+        callback    = function(text) print("Typed:", text) end
+    })
+end
+
+-- ============================================================
+-- 6. TEST NOTIFICATION  (fires 2 seconds after load)
+-- ============================================================
+task.delay(2, function()
+    library.notifications:create_notification({
+        name     = "Example Hub",
+        info     = "Menu loaded successfully!",
+        lifetime = 4
+    })
+end)
+
+-- ============================================================
+-- 7. INIT CONFIG TAB (adds a built-in Configs tab)
+-- ============================================================
+library:init_config(window)
 
 print("[Example Hub] Script loaded.")
