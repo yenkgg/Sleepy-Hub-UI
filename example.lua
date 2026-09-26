@@ -1,68 +1,19 @@
 --[[
     ============================================================
     Sleepy Hub UI (Mobile Port) - Example Script
-    - Fetches library, ensures it ends with `return library`
-    - Removes the broken built-in Toggle UI button block
-    - Creates its own standalone Toggle UI button
+    - Library no longer creates the Toggle UI button
+    - This script creates its own standalone Toggle UI button
+      in a separate ScreenGui so it can never be hidden by
+      the menu itself.
     ============================================================
 ]]
 
 -- ============================================================
--- 1. FETCH + PATCH + LOAD THE LIBRARY
+-- 1. LOAD THE LIBRARY
 -- ============================================================
-local LIB_URL = "https://raw.githubusercontent.com/yenkgg/Sleepy-Hub-UI/refs/heads/main/Library.lua"
-
-print("[Loader] Fetching library...")
-local src = game:HttpGet(LIB_URL)
-
-if type(src) ~= "string" or #src < 100 then
-    error("[Loader] Fetch failed. Got " .. (type(src) == "string" and #src or "nil") .. " bytes.")
-end
-
-print("[Loader] Fetched " .. #src .. " bytes.")
-
--- FIX: Ensure the file ends with `return library`
-if not src:match("return%s+library%s*$") then
-    src = src .. "\n\nreturn library\n"
-    print("[Loader] Appended missing 'return library'.")
-else
-    print("[Loader] Source already ends with 'return library'.")
-end
-
--- Strip out the library's broken built-in Toggle UI button block
-local start_marker = "%-%- %[MOBILE%] Toggle UI button"
-local _, start_idx = src:find(start_marker)
-
-if start_idx then
-    local _, ret_idx = src:find("return setmetatable%(cfg, library%)", start_idx)
-    if ret_idx then
-        local return_line_start = src:sub(1, ret_idx):find("return setmetatable")
-        src = src:sub(1, start_idx - 1)
-            .. "        end\n            \n            "
-            .. src:sub(return_line_start)
-        print("[Loader] Removed built-in Toggle UI button.")
-    else
-        warn("[Loader] Could not find return statement after toggle marker.")
-    end
-else
-    print("[Loader] No built-in Toggle UI button found.")
-end
-
--- Compile and run
-local loader = loadstring or load
-local chunk, err = loader(src, "Milenium")
-
-if not chunk then
-    error("[Loader] Compile error: " .. tostring(err))
-end
-
-local Library = chunk()
-
-if type(Library) ~= "table" then
-    error("[Loader] Library did not return a table. Got: " .. typeof(Library))
-end
-
-print("[Loader] Library loaded successfully.")
+local Library = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/yenkgg/Sleepy-Hub-UI/refs/heads/main/Library.lua"
+))()
 
 -- ============================================================
 -- 2. CREATE THE WINDOW
@@ -75,6 +26,7 @@ local window = Library:window({
 
 -- ============================================================
 -- 3. STANDALONE MOBILE TOGGLE UI BUTTON
+--    Own ScreenGui → never hidden by library["items"].Enabled
 -- ============================================================
 local uis = game:GetService("UserInputService")
 local tween_service = game:GetService("TweenService")
@@ -88,6 +40,7 @@ if is_mobile then
     toggle_gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
     toggle_gui.DisplayOrder = 99999
 
+    -- Prefer CoreGui, fall back to PlayerGui
     local ok = pcall(function()
         toggle_gui.Parent = game:GetService("CoreGui")
     end)
