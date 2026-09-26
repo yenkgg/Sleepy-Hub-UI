@@ -1,97 +1,19 @@
 --[[
     ============================================================
     Sleepy Hub UI (Mobile Port) - Example Script
-    - Fixes the "Toggle UI button hides itself" bug
+    - Loads the Milenium/Sleepy Hub library
+    - Library no longer has a built-in Toggle UI button
+    - This script creates its own button in a separate ScreenGui
+      so toggling the menu never hides the button.
     ============================================================
 ]]
 
 -- ============================================================
--- 1. FETCH + PATCH + LOAD THE LIBRARY
+-- 1. LOAD THE LIBRARY
 -- ============================================================
-local LIB_URL = "https://raw.githubusercontent.com/yenkgg/Sleepy-Hub-UI/refs/heads/main/Library.lua"
-
-local src = game:HttpGet(LIB_URL)
-
--- [PATCH] Replace the buggy Toggle UI button creation so that it
--- lives in its own ScreenGui instead of inside library["items"].
--- The original block starts with `-- [MOBILE] Toggle UI button`
--- and ends with the closing `end` of the `if is_mobile then` block.
--- We replace the whole block with a fixed version.
-
-local patched_block = [[
-            -- [MOBILE] Toggle UI button (PATCHED: separate ScreenGui)
-            if is_mobile then
-                local toggle_gui = library:create("ScreenGui", {
-                    Parent = coregui;
-                    Name = "\0";
-                    Enabled = true;
-                    ZIndexBehavior = Enum.ZIndexBehavior.Global;
-                    IgnoreGuiInset = true;
-                    DisplayOrder = 99999;
-                })
-
-                items[ "toggle_ui_button" ] = library:create( "TextButton" , {
-                    Parent = toggle_gui;
-                    Name = "\0";
-                    Size = dim_offset(120, 40);
-                    Position = dim_offset(16, 16);
-                    BackgroundColor3 = themes.preset.accent;
-                    BackgroundTransparency = 0.35;
-                    BorderSizePixel = 0;
-                    Text = "Toggle UI";
-                    TextColor3 = rgb(255, 255, 255);
-                    TextSize = 15;
-                    FontFace = fonts.font;
-                    AutoButtonColor = false;
-                    ZIndex = 999;
-                    Active = true;
-                    Draggable = true;
-                });
-
-                library:create( "UICorner" , {
-                    Parent = items[ "toggle_ui_button" ];
-                    CornerRadius = dim(0, 8)
-                });
-
-                library:create( "UIStroke" , {
-                    Parent = items[ "toggle_ui_button" ];
-                    Color = rgb(255, 255, 255);
-                    Transparency = 0.6;
-                    ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
-                });
-
-                local function do_toggle()
-                    library[ "items" ].Enabled = not library[ "items" ].Enabled
-                end
-
-                items[ "toggle_ui_button" ].MouseButton1Click:Connect(do_toggle)
-                items[ "toggle_ui_button" ].TouchTap:Connect(do_toggle)
-
-                items[ "toggle_ui_button" ].MouseButton1Down:Connect(function()
-                    library:tween(items[ "toggle_ui_button" ], {BackgroundTransparency = 0.6}, Enum.EasingStyle.Quad, 0.1)
-                end)
-                items[ "toggle_ui_button" ].MouseButton1Up:Connect(function()
-                    library:tween(items[ "toggle_ui_button" ], {BackgroundTransparency = 0.35}, Enum.EasingStyle.Quad, 0.1)
-                end)
-            end
-]]
-
--- Find and replace the original buggy block
-local start_marker = "%-%- %[MOBILE%] Toggle UI button"
-local _, start_idx = src:find(start_marker)
-if start_idx then
-    -- Find the matching "end" of the `if is_mobile then` block
-    -- by scanning forward for the next "-- return setmetatable" (which follows it)
-    local tail_marker = "return setmetatable%(cfg, library%)"
-    local _, tail_idx = src:find(tail_marker, start_idx)
-    if tail_idx then
-        -- Back up to the start of that line's "return"
-        local return_start = src:sub(1, tail_idx):find("return setmetatable")
-        src = src:sub(1, start_idx - 1) .. patched_block .. "\n            " .. src:sub(return_start)
-    end
-end
-
-local Library = (loadstring or load)(src, "Milenium")()
+local Library = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/yenkgg/Sleepy-Hub-UI/refs/heads/main/Library.lua"
+))()
 
 -- ============================================================
 -- 2. CREATE THE WINDOW
@@ -103,7 +25,79 @@ local window = Library:window({
 })
 
 -- ============================================================
--- 3. MAIN TAB
+-- 3. STANDALONE MOBILE TOGGLE UI BUTTON
+--    Lives in its own ScreenGui so it can never be hidden by
+--    toggling library["items"].Enabled.
+-- ============================================================
+local uis = game:GetService("UserInputService")
+local is_mobile = uis.TouchEnabled and not uis.KeyboardEnabled
+
+if is_mobile then
+    local toggle_gui = Instance.new("ScreenGui")
+    toggle_gui.Name = "ToggleUIOverlay"
+    toggle_gui.ResetOnSpawn = false
+    toggle_gui.IgnoreGuiInset = true
+    toggle_gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+    toggle_gui.DisplayOrder = 99999
+
+    -- Prefer CoreGui, fall back to PlayerGui
+    local ok = pcall(function()
+        toggle_gui.Parent = game:GetService("CoreGui")
+    end)
+    if not ok then
+        toggle_gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    end
+
+    local btn = Instance.new("TextButton")
+    btn.Name = "ToggleUIButton"
+    btn.Size = UDim2.fromOffset(120, 40)
+    btn.Position = UDim2.fromOffset(16, 16)
+    btn.BackgroundColor3 = Color3.fromRGB(155, 150, 219)
+    btn.BackgroundTransparency = 0.35
+    btn.BorderSizePixel = 0
+    btn.Text = "Toggle UI"
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 15
+    btn.Font = Enum.Font.Code
+    btn.AutoButtonColor = false
+    btn.Active = true
+    btn.Draggable = true
+    btn.ZIndex = 5
+    btn.Parent = toggle_gui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(255, 255, 255)
+    stroke.Transparency = 0.6
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = btn
+
+    local tween_service = game:GetService("TweenService")
+
+    local function press_feedback(transparency)
+        tween_service:Create(
+            btn,
+            TweenInfo.new(0.1, Enum.EasingStyle.Quad),
+            { BackgroundTransparency = transparency }
+        ):Play()
+    end
+
+    local function toggle_menu()
+        Library["items"].Enabled = not Library["items"].Enabled
+    end
+
+    btn.MouseButton1Click:Connect(toggle_menu)
+    btn.TouchTap:Connect(toggle_menu)
+
+    btn.MouseButton1Down:Connect(function() press_feedback(0.6) end)
+    btn.MouseButton1Up:Connect(function()   press_feedback(0.35) end)
+end
+
+-- ============================================================
+-- 4. MAIN TAB
 -- ============================================================
 window:seperator({ name = "Main" })
 
@@ -229,7 +223,7 @@ do
 end
 
 -- ============================================================
--- 4. VISUALS TAB
+-- 5. VISUALS TAB (multi-tab: Enemies / Teammates / Self)
 -- ============================================================
 window:seperator({ name = "Visuals" })
 
@@ -286,7 +280,7 @@ for _, tab in { enemiesTab, teammatesTab, selfTab } do
 end
 
 -- ============================================================
--- 5. MISC TAB
+-- 6. MISC TAB (two half-width sections side by side)
 -- ============================================================
 window:seperator({ name = "Misc" })
 
@@ -320,7 +314,7 @@ do
 end
 
 -- ============================================================
--- 6. NOTIFICATION
+-- 7. LOAD NOTIFICATION
 -- ============================================================
 task.delay(1, function()
     Library.notifications:create_notification({
@@ -331,7 +325,7 @@ task.delay(1, function()
 end)
 
 -- ============================================================
--- 7. INIT CONFIG TAB
+-- 8. INIT CONFIG TAB (adds built-in Configs tab)
 -- ============================================================
 Library:init_config(window)
 
