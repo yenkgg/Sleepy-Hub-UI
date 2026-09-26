@@ -1,19 +1,60 @@
 --[[
     ============================================================
     Sleepy Hub UI (Mobile Port) - Example Script
-    - Loads the Milenium/Sleepy Hub library
-    - Library no longer has a built-in Toggle UI button
-    - This script creates its own button in a separate ScreenGui
-      so toggling the menu never hides the button.
+    - Fetches library, patches out its broken Toggle UI button,
+      compiles it, then builds a demo menu with its own
+      standalone Toggle UI button.
     ============================================================
 ]]
 
 -- ============================================================
--- 1. LOAD THE LIBRARY
+-- 1. FETCH + PATCH + LOAD THE LIBRARY (with diagnostics)
 -- ============================================================
-local Library = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/yenkgg/Sleepy-Hub-UI/refs/heads/main/Library.lua"
-))()
+local LIB_URL = "https://raw.githubusercontent.com/yenkgg/Sleepy-Hub-UI/refs/heads/main/Library.lua"
+
+print("[Loader] Fetching library...")
+local src = game:HttpGet(LIB_URL)
+
+if type(src) ~= "string" or #src < 100 then
+    error("[Loader] Fetch failed. Got " .. (type(src) == "string" and #src or "nil") .. " bytes.")
+end
+
+print("[Loader] Fetched " .. #src .. " bytes.")
+print("[Loader] Last 100 chars: " .. src:sub(-100))
+
+-- Strip out the library's broken built-in Toggle UI button block
+local start_marker = "%-%- %[MOBILE%] Toggle UI button"
+local _, start_idx = src:find(start_marker)
+
+if start_idx then
+    local _, ret_idx = src:find("return setmetatable%(cfg, library%)", start_idx)
+    if ret_idx then
+        local return_line_start = src:sub(1, ret_idx):find("return setmetatable")
+        src = src:sub(1, start_idx - 1)
+            .. "        end\n            \n            "
+            .. src:sub(return_line_start)
+        print("[Loader] Removed built-in Toggle UI button.")
+    else
+        warn("[Loader] Could not find return statement after toggle marker.")
+    end
+else
+    print("[Loader] No built-in Toggle UI button found — nothing to remove.")
+end
+
+local loader = loadstring or load
+local chunk, err = loader(src, "Milenium")
+
+if not chunk then
+    error("[Loader] Compile error: " .. tostring(err))
+end
+
+local Library = chunk()
+
+if type(Library) ~= "table" then
+    error("[Loader] Library did not return a table. Got: " .. typeof(Library))
+end
+
+print("[Loader] Library loaded successfully.")
 
 -- ============================================================
 -- 2. CREATE THE WINDOW
@@ -26,10 +67,9 @@ local window = Library:window({
 
 -- ============================================================
 -- 3. STANDALONE MOBILE TOGGLE UI BUTTON
---    Lives in its own ScreenGui so it can never be hidden by
---    toggling library["items"].Enabled.
 -- ============================================================
 local uis = game:GetService("UserInputService")
+local tween_service = game:GetService("TweenService")
 local is_mobile = uis.TouchEnabled and not uis.KeyboardEnabled
 
 if is_mobile then
@@ -40,7 +80,6 @@ if is_mobile then
     toggle_gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
     toggle_gui.DisplayOrder = 99999
 
-    -- Prefer CoreGui, fall back to PlayerGui
     local ok = pcall(function()
         toggle_gui.Parent = game:GetService("CoreGui")
     end)
@@ -75,13 +114,11 @@ if is_mobile then
     stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     stroke.Parent = btn
 
-    local tween_service = game:GetService("TweenService")
-
-    local function press_feedback(transparency)
+    local function press_feedback(t)
         tween_service:Create(
             btn,
             TweenInfo.new(0.1, Enum.EasingStyle.Quad),
-            { BackgroundTransparency = transparency }
+            { BackgroundTransparency = t }
         ):Play()
     end
 
@@ -91,7 +128,6 @@ if is_mobile then
 
     btn.MouseButton1Click:Connect(toggle_menu)
     btn.TouchTap:Connect(toggle_menu)
-
     btn.MouseButton1Down:Connect(function() press_feedback(0.6) end)
     btn.MouseButton1Up:Connect(function()   press_feedback(0.35) end)
 end
@@ -223,7 +259,7 @@ do
 end
 
 -- ============================================================
--- 5. VISUALS TAB (multi-tab: Enemies / Teammates / Self)
+-- 5. VISUALS TAB
 -- ============================================================
 window:seperator({ name = "Visuals" })
 
@@ -280,7 +316,7 @@ for _, tab in { enemiesTab, teammatesTab, selfTab } do
 end
 
 -- ============================================================
--- 6. MISC TAB (two half-width sections side by side)
+-- 6. MISC TAB
 -- ============================================================
 window:seperator({ name = "Misc" })
 
@@ -325,7 +361,7 @@ task.delay(1, function()
 end)
 
 -- ============================================================
--- 8. INIT CONFIG TAB (adds built-in Configs tab)
+-- 8. INIT CONFIG TAB
 -- ============================================================
 Library:init_config(window)
 
