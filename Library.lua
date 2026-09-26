@@ -6,6 +6,7 @@
     -> Idk who or why this got leaked, ui was VERY popular and high in demand with customers
 
     -> [MOBILE] Patched for touch devices (Toggle UI button removed — create it in your script)
+    -> [MOBILE] Fixed double-toggle on mobile (removed duplicate TouchTap handlers)
 ]]
 
 -- Variables 
@@ -304,7 +305,7 @@
 
             frame.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 
-                    or input.UserInputType == Enum.UserInputType.Touch then -- [MOBILE] allow touch drag
+                    or input.UserInputType == Enum.UserInputType.Touch then
                     dragging = true
                     start = input.Position
                     start_size = frame.Position
@@ -313,14 +314,14 @@
 
             frame.InputEnded:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 
-                    or input.UserInputType == Enum.UserInputType.Touch then -- [MOBILE]
+                    or input.UserInputType == Enum.UserInputType.Touch then
                     dragging = false
                 end
             end)
 
             library:connection(uis.InputChanged, function(input, game_event) 
                 if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement 
-                    or input.UserInputType == Enum.UserInputType.Touch) then -- [MOBILE]
+                    or input.UserInputType == Enum.UserInputType.Touch) then
                     local viewport_x = camera.ViewportSize.X
                     local viewport_y = camera.ViewportSize.Y
 
@@ -516,7 +517,7 @@
                 suffix = properties.suffix or properties.Suffix or "tech";
                 name = properties.name or properties.Name or "nebula";
                 game_name = properties.gameInfo or properties.game_info or properties.GameInfo or "Milenium for Counter-Strike: Global Offensive";
-                size = properties.size or properties.Size or default_size; -- [MOBILE]
+                size = properties.size or properties.Size or default_size;
                 selected_tab;
                 items = {};
 
@@ -561,7 +562,6 @@
                     ApplyStrokeMode = Enum.ApplyStrokeMode.Border
                 });
                 
-                -- [MOBILE] Side frame narrower on mobile
                 local side_width = is_mobile and 130 or 196
                 items[ "side_frame" ] = library:create( "Frame" , {
                     Parent = items[ "main" ];
@@ -625,7 +625,6 @@
                     BackgroundColor3 = rgb(255, 255, 255)
                 }); library:apply_theme(items[ "title" ], "accent", "TextColor3");
                 
-                -- [MOBILE] Multi-holder / global-fade sit right after side frame
                 items[ "multi_holder" ] = library:create( "Frame" , {
                     Parent = items[ "main" ];
                     Name = "\0";
@@ -754,9 +753,6 @@
                 library[ "items" ].Enabled = bool
             end 
 
-            -- [MOBILE] Toggle UI button REMOVED.
-            -- Create your own in your script if you need one.
-
             return setmetatable(cfg, library)
         end 
 
@@ -765,28 +761,26 @@
                 name = properties.name or properties.Name or "visuals"; 
                 icon = properties.icon or properties.Icon or "http://www.roblox.com/asset/?id=6034767608";
                 
-                -- multi 
                 tabs = properties.tabs or properties.Tabs or {"Main", "Misc.", "Settings"};
-                pages = {}; -- data store for multi sections
+                pages = {}; 
                 current_multi; 
                 
                 items = {};
             } 
 
             local items = cfg.items; do 
-                -- [MOBILE] side_width used for consistency
                 local side_width = is_mobile and 130 or 196
                 local tab_holder_pos_x = side_width
-                local tab_holder_size_x = is_mobile and (1) or (1) -- scale-based, safe
+                local tab_holder_size_x = is_mobile and (1) or (1)
 
                 items[ "tab_holder" ] = library:create( "Frame" , {
                     Parent = library.cache;
                     Name = "\0";
                     Visible = false;
                     BackgroundTransparency = 1;
-                    Position = dim2(0, tab_holder_pos_x, 0, 56);           -- [MOBILE]
+                    Position = dim2(0, tab_holder_pos_x, 0, 56);
                     BorderColor3 = rgb(0, 0, 0);
-                    Size = dim2(1, -tab_holder_pos_x - 20, 1, -101);        -- [MOBILE]
+                    Size = dim2(1, -tab_holder_pos_x - 20, 1, -101);
                     BorderSizePixel = 0;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
@@ -1044,7 +1038,7 @@
 
             function cfg.open_tab() 
                 local selected_tab = self.selected_tab
-                local side_width = is_mobile and 130 or 196 -- [MOBILE]
+                local side_width = is_mobile and 130 or 196
                 
                 if selected_tab then 
                     if selected_tab[ 4 ] ~= items[ "tab_holder" ] then 
@@ -1425,7 +1419,7 @@
                     cfg.default = not cfg.default 
                     cfg.toggle_section(cfg.default) 
                 end)
-                -- [MOBILE] touch
+                -- [MOBILE] touch (only one handler to avoid double-toggle)
                 items[ "button" ].TouchTap:Connect(function()
                     cfg.default = not cfg.default 
                     cfg.toggle_section(cfg.default)
@@ -1450,7 +1444,7 @@
                 info = options.info or nil,
                 flag = options.flag or library:next_flag(),
                 
-                type = options.type and string.lower(options.type) or rand == 1 and "toggle" or "checkbox"; -- "toggle", "checkbox"
+                type = options.type and string.lower(options.type) or rand == 1 and "toggle" or "checkbox";
 
                 default = options.default or false,
                 folding = options.folding or false, 
@@ -1681,7 +1675,7 @@
                 cfg.enabled = not cfg.enabled 
                 cfg.set(cfg.enabled)
             end)
-            -- [MOBILE] touch
+            -- [MOBILE] touch (only ONE handler — on the row — to avoid double-toggle)
             items[ "toggle" ].TouchTap:Connect(function()
                 cfg.enabled = not cfg.enabled 
                 cfg.set(cfg.enabled)
@@ -1691,11 +1685,8 @@
                 cfg.enabled = not cfg.enabled 
                 cfg.set(cfg.enabled)
             end)
-            -- [MOBILE] touch
-            items[ "toggle_button" ].TouchTap:Connect(function()
-                cfg.enabled = not cfg.enabled 
-                cfg.set(cfg.enabled)
-            end)
+            -- NOTE: deliberately NO TouchTap on toggle_button — it would double-fire
+            --       with the row's TouchTap when the user taps the switch itself.
             
             if cfg.seperator then
                 library:create( "Frame" , {
@@ -1920,7 +1911,7 @@
 
             library:connection(uis.InputChanged, function(input)
                 if cfg.dragging and (input.UserInputType == Enum.UserInputType.MouseMovement 
-                    or input.UserInputType == Enum.UserInputType.Touch) then -- [MOBILE]
+                    or input.UserInputType == Enum.UserInputType.Touch) then
                     local size_x = clamp((input.Position.X - items[ "slider" ].AbsolutePosition.X) / items[ "slider" ].AbsoluteSize.X, 0, 1)
                     local value = ((cfg.max - cfg.min) * size_x) + cfg.min
                     cfg.set(value)
@@ -1929,7 +1920,7 @@
 
             library:connection(uis.InputEnded, function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 
-                    or input.UserInputType == Enum.UserInputType.Touch then -- [MOBILE]
+                    or input.UserInputType == Enum.UserInputType.Touch then
                     cfg.dragging = false
                     library:tween(items[ "value" ], {TextColor3 = rgb(72, 72, 73)}, Enum.EasingStyle.Quad, 0.2) 
                 end 
@@ -3512,12 +3503,8 @@
                 library:close_element(cfg)
             end
             
+            -- Only ONE handler — Tap fires both MouseButton1Click and TouchTap on mobile if duplicated
             items[ "tick" ].MouseButton1Click:Connect(function()
-                cfg.open = not cfg.open 
-                cfg.set_visible(cfg.open)
-            end)
-            -- [MOBILE]
-            items[ "tick" ].TouchTap:Connect(function()
                 cfg.open = not cfg.open 
                 cfg.set_visible(cfg.open)
             end)
