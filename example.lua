@@ -1,73 +1,27 @@
 --[[
-    Milenium / Nebula UI - Example Script (with load diagnostics)
+    ============================================================
+    Sleepy Hub UI (Mobile Port) - Example Script
+    ============================================================
+    Full working example with tabs, sections, toggles, sliders,
+    dropdowns, colorpickers, keybinds, buttons, textboxes, and
+    the mobile "Toggle UI" button.
 ]]
 
 -- ============================================================
--- 1. LOAD THE LIBRARY (with error checking)
+-- 1. LOAD THE LIBRARY
 -- ============================================================
-local LIB_URL = "https://raw.githubusercontent.com/i77lhm/Libraries/refs/heads/main/Millenium/Library.lua"
-
-local function fetchSource(url)
-    -- Try every common method so we know which one works
-    local methods = {
-        function() return game:HttpGet(url) end,
-        function() return game:HttpGetAsync(url) end,
-        function() return request({ Url = url, Method = "GET" }).Body end,
-        function() return syn.request({ Url = url, Method = "GET" }).Body end,
-        function() return http_request({ Url = url, Method = "GET" }).Body end,
-    }
-
-    for i, fn in ipairs(methods) do
-        local ok, res = pcall(fn)
-        if ok and type(res) == "string" and #res > 0 and not res:find("^<!DOCTYPE") then
-            print("[Loader] Fetch method #" .. i .. " succeeded (" .. #res .. " bytes)")
-            return res
-        end
-    end
-
-    return nil
-end
-
-local src = fetchSource(LIB_URL)
-if not src then
-    error("[Loader] Could not fetch library source from " .. LIB_URL)
-end
-
-local loader = loadstring or load
-local chunk, err = loader(src, "Milenium")
-if not chunk then
-    error("[Loader] Failed to compile library: " .. tostring(err))
-end
-
-local library = chunk()
-
-print("[Loader] Library type:", typeof(library))
-if type(library) ~= "table" then
-    error("[Loader] Library did not return a table. Got: " .. tostring(library))
-end
-
--- Verify the :window method actually exists before calling it
-local windowMethod = library.window or library.Window
-print("[Loader] library.window =", typeof(windowMethod))
-
-if type(windowMethod) ~= "function" then
-    print("[Loader] Available library methods:")
-    for k, v in pairs(library) do
-        print("  ", k, typeof(v))
-    end
-    error("[Loader] No :window method on library. See list above.")
-end
+local Library = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/yenkgg/Sleepy-Hub-UI/refs/heads/main/Library.lua"
+))()
 
 -- ============================================================
 -- 2. CREATE THE WINDOW
 -- ============================================================
-local window = library:window({
+local window = Library:window({
     name     = "example",
     suffix   = "hub",
     gameInfo = "Example Hub for Roblox"
 })
-
-print("[Example Hub] Window created.")
 
 -- ============================================================
 -- 3. MAIN TAB
@@ -77,6 +31,7 @@ window:seperator({ name = "Main" })
 local mainTab = window:tab({ name = "Main", tabs = { "Main" } })
 
 do
+    -- Left column
     local leftColumn  = mainTab:column({})
     local leftSection = leftColumn:section({
         name    = "General",
@@ -86,7 +41,7 @@ do
 
     leftSection:label({
         name = "Welcome!",
-        info = "This is an example menu built with the Milenium library."
+        info = "This menu was built with the Sleepy Hub UI library."
     })
 
     leftSection:toggle({
@@ -152,6 +107,7 @@ do
         end
     })
 
+    -- Right column
     local rightColumn  = mainTab:column({})
     local rightSection = rightColumn:section({
         name    = "Appearance",
@@ -191,10 +147,18 @@ do
             if char then char:BreakJoints() end
         end
     })
+
+    rightSection:textbox({
+        name        = "Your Name",
+        placeholder = "Type here...",
+        callback    = function(text)
+            print("[Example] Typed:", text)
+        end
+    })
 end
 
 -- ============================================================
--- 4. VISUALS TAB
+-- 4. VISUALS TAB  (multi-tab: Enemies / Teammates / Self)
 -- ============================================================
 window:seperator({ name = "Visuals" })
 
@@ -211,15 +175,35 @@ for _, tab in { enemiesTab, teammatesTab, selfTab } do
         icon    = "rbxassetid://6022668898"
     })
 
-    section:toggle({ name = "Enable ESP",      default = false, seperator = true })
-    section:toggle({ name = "Through Walls",   default = false, seperator = true })
+    section:toggle({
+        name      = "Enable ESP",
+        default   = false,
+        seperator = true,
+        callback  = function(bool) print("ESP:", bool) end
+    })
 
-    section:toggle({ name = "Box", default = true, seperator = true }):colorpicker({
+    section:toggle({
+        name      = "Through Walls",
+        default   = false,
+        seperator = true
+    })
+
+    -- Toggle with chained colorpicker
+    section:toggle({
+        name      = "Box",
+        default   = true,
+        seperator = true
+    }):colorpicker({
         name  = "Box Color",
         color = Color3.fromRGB(255, 60, 60)
     })
 
-    local nameToggle = section:toggle({ name = "Name", default = true, seperator = true })
+    -- Toggle with a nested settings sub-menu
+    local nameToggle = section:toggle({
+        name      = "Name",
+        default   = true,
+        seperator = true
+    })
     nameToggle:colorpicker({ name = "Name Color" })
 
     local nameSettings = nameToggle:settings({})
@@ -255,7 +239,7 @@ for _, tab in { enemiesTab, teammatesTab, selfTab } do
 end
 
 -- ============================================================
--- 5. MISC TAB
+-- 5. MISC TAB  (two half-width sections side by side)
 -- ============================================================
 window:seperator({ name = "Misc" })
 
@@ -289,10 +273,10 @@ do
 end
 
 -- ============================================================
--- 6. TEST NOTIFICATION
+-- 6. LOAD NOTIFICATION
 -- ============================================================
-task.delay(2, function()
-    library.notifications:create_notification({
+task.delay(1, function()
+    Library.notifications:create_notification({
         name     = "Example Hub",
         info     = "Menu loaded successfully!",
         lifetime = 4
@@ -300,8 +284,8 @@ task.delay(2, function()
 end)
 
 -- ============================================================
--- 7. INIT CONFIG TAB
+-- 7. INIT CONFIG TAB (built-in Configs tab)
 -- ============================================================
-library:init_config(window)
+Library:init_config(window)
 
 print("[Example Hub] Script loaded.")
