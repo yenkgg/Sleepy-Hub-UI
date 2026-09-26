@@ -1,11 +1,6 @@
 --[[
-    ============================================================
-    Sleepy Hub UI - Example Script
-    ============================================================
-    A complete example showing how to load and use the UI library
-    with toggles, sliders, dropdowns, buttons, keybinds, and
-    notifications.
-    ============================================================
+    Example script for Sleepy Hub UI Library
+    Place this in your executor and run it.
 ]]
 
 -- ============================================================
@@ -16,164 +11,194 @@ local Library = loadstring(game:HttpGet(
 ))()
 
 -- ============================================================
--- 2. CREATE THE MAIN WINDOW
+-- 2. CREATE THE WINDOW
 -- ============================================================
 local Window = Library:CreateWindow({
-    Title    = "Example Hub",
-    Subtitle = "v1.0.0 | by you",
-    Size     = UDim2.new(0, 620, 0, 420),
-    Theme    = "Dark",                 -- "Dark" | "Light"
-    Keybind  = Enum.KeyCode.RightShift,-- toggle the UI
-    Logo     = "rbxassetid://0000000000" -- optional
+    Title       = "Example Hub",
+    Center      = true,                    -- auto-center on screen
+    AutoShow    = true,                    -- show immediately
+    Font        = Enum.Font.Code,
+    Size        = UDim2.fromOffset(620, 520),
+    ToggleKeybind = Enum.KeyCode.RightShift -- shows/hides the UI
 })
 
 -- ============================================================
 -- 3. CREATE TABS
 -- ============================================================
-local MainTab    = Window:CreateTab({ Name = "Main",    Icon = "rbxassetid://6031075931" })
-local CombatTab  = Window:CreateTab({ Name = "Combat",  Icon = "rbxassetid://6031090990" })
-local VisualsTab = Window:CreateTab({ Name = "Visuals", Icon = "rbxassetid://6031091004" })
-local MiscTab    = Window:CreateTab({ Name = "Misc",    Icon = "rbxassetid://6031094667" })
-local ConfigTab  = Window:CreateTab({ Name = "Config",  Icon = "rbxassetid://6031280882" })
+local MainTab = Window:CreateTab({
+    Name  = "Main",
+    Icon  = "rbxassetid://6031075931",
+    Color = Color3.fromRGB(0, 85, 255)
+})
+
+local CombatTab = Window:CreateTab({
+    Name  = "Combat",
+    Icon  = "rbxassetid://6031090990",
+    Color = Color3.fromRGB(255, 60, 60)
+})
+
+local VisualsTab = Window:CreateTab({
+    Name  = "Visuals",
+    Icon  = "rbxassetid://6031091004",
+    Color = Color3.fromRGB(100, 220, 100)
+})
+
+local MiscTab = Window:CreateTab({
+    Name  = "Misc",
+    Icon  = "rbxassetid://6031094667",
+    Color = Color3.fromRGB(255, 180, 0)
+})
 
 -- ============================================================
 -- 4. MAIN TAB
 -- ============================================================
-local MainSection = MainTab:CreateSection("Welcome")
+local MainBox = MainTab:AddLeftGroupbox("Welcome")
 
-MainSection:CreateLabel({
-    Text = "Welcome to Example Hub!"
-})
+MainBox:AddLabel("Welcome to Example Hub!")
 
-MainSection:CreateButton({
-    Name = "Print Hello",
-    Callback = function()
+MainBox:AddButton({
+    Text = "Print Hello",
+    Func = function()
         print("Hello from Example Hub!")
-        Library:Notify({
-            Title    = "Button Pressed",
-            Text     = "You clicked Print Hello",
-            Duration = 3
-        })
+        Library:Notify("You clicked Print Hello", 3)
     end
 })
+
+MainBox:AddDivider()
+
+MainBox:AddLabel("This is a divider example.")
 
 -- ============================================================
 -- 5. COMBAT TAB
 -- ============================================================
-local AimbotSection = CombatTab:CreateSection("Aimbot")
+local AimbotBox = CombatTab:AddLeftGroupbox("Aimbot")
 
-AimbotSection:CreateToggle({
-    Name     = "Enable Aimbot",
+AimbotBox:AddToggle(1, {
+    Text     = "Enable Aimbot",
     Default  = false,
     Callback = function(state)
         print("Aimbot:", state)
     end
 })
 
-AimbotSection:CreateKeybind({
-    Name     = "Aimbot Key",
-    Default  = Enum.KeyCode.E,
-    Callback = function(key)
-        print("Aimbot key set to:", key.Name)
+AimbotBox:AddKeyPicker(2, {
+    Default  = "E",
+    Text     = "Aimbot Key",
+    Mode     = "Toggle",           -- "Always" | "Toggle" | "Hold"
+    Callback = function(state)
+        print("Aimbot key state:", state)
     end
 })
 
-AimbotSection:CreateSlider({
-    Name     = "FOV",
+AimbotBox:AddSlider(3, {
+    Text     = "FOV",
+    Default  = 90,
     Min      = 0,
     Max      = 360,
-    Default  = 90,
+    Rounding = 0,                  -- 0 = integer, 1 = 1 decimal
     Suffix   = "°",
-    Decimals = 0,
     Callback = function(value)
-        print("FOV changed to:", value)
+        print("FOV:", value)
     end
 })
 
-AimbotSection:CreateSlider({
-    Name     = "Smoothing",
+AimbotBox:AddSlider(4, {
+    Text     = "Smoothing",
+    Default  = 0.15,
     Min      = 0.01,
     Max      = 1,
-    Default  = 0.15,
+    Rounding = 2,
     Suffix   = "",
-    Decimals = 2,
     Callback = function(value)
         print("Smoothing:", value)
     end
 })
 
-AimbotSection:CreateDropdown({
-    Name     = "Target Part",
-    Options  = { "Head", "Torso", "Nearest", "Random" },
+AimbotBox:AddDropdown(5, {
+    Text     = "Target Part",
+    Values   = { "Head", "Torso", "Nearest", "Random" },
     Default  = "Head",
+    Multi    = false,              -- set true for multiselect
     Callback = function(option)
         print("Targeting:", option)
     end
 })
 
-AimbotSection:CreateMultibox({
-    Name     = "Target Teams",
-    Options  = { "Enemies", "Neutrals", "Allies" },
-    Default  = { "Enemies" },
+AimbotBox:AddDropdown(6, {
+    Text     = "Target Teams",
+    Values   = { "Enemies", "Neutrals", "Allies" },
+    Default  = { "Enemies" },      -- table = multi
+    Multi    = true,
     Callback = function(selected)
-        print("Targeting:", table.concat(selected, ", "))
+        local str = ""
+        for _, v in pairs(selected) do str = str .. v .. ", " end
+        print("Targeting:", str)
     end
 })
 
--- ============================================================
--- 6. VISUALS TAB
--- ============================================================
-local ESP = VisualsTab:CreateSection("ESP")
+local VisualsAimBox = CombatTab:AddRightGroupbox("Visuals")
 
-ESP:CreateToggle({
-    Name     = "Player ESP",
-    Default  = false,
-    Callback = function(state)
-        print("Player ESP:", state)
-    end
-})
-
-ESP:CreateToggle({
-    Name     = "Boxes",
-    Default  = true,
-    Callback = function(state) print("Boxes:", state) end
-})
-
-ESP:CreateToggle({
-    Name     = "Names",
-    Default  = true,
-    Callback = function(state) print("Names:", state) end
-})
-
-ESP:CreateColorpicker({
-    Name     = "Box Color",
+VisualsAimBox:AddColorPicker(7, {
+    Title    = "Box Color",
     Default  = Color3.fromRGB(255, 60, 60),
     Callback = function(color)
         print("Box color:", color)
     end
 })
 
-ESP:CreateSlider({
-    Name     = "Max Distance",
+-- ============================================================
+-- 6. VISUALS TAB
+-- ============================================================
+local ESPBox = VisualsTab:AddLeftGroupbox("ESP")
+
+ESPBox:AddToggle(10, {
+    Text     = "Player ESP",
+    Default  = false,
+    Callback = function(state) print("Player ESP:", state) end
+})
+
+ESPBox:AddToggle(11, {
+    Text     = "Boxes",
+    Default  = true,
+    Callback = function(state) print("Boxes:", state) end
+})
+
+ESPBox:AddToggle(12, {
+    Text     = "Names",
+    Default  = true,
+    Callback = function(state) print("Names:", state) end
+})
+
+ESPBox:AddSlider(13, {
+    Text     = "Max Distance",
+    Default  = 1500,
     Min      = 100,
     Max      = 5000,
-    Default  = 1500,
+    Rounding = 0,
     Suffix   = " studs",
-    Decimals = 0,
-    Callback = function(value) print("Max distance:", value) end
+    Callback = function(v) print("Max distance:", v) end
+})
+
+local ESPColorBox = VisualsTab:AddRightGroupbox("Colors")
+
+ESPColorBox:AddColorPicker(14, {
+    Title    = "ESP Color",
+    Default  = Color3.fromRGB(60, 180, 255),
+    Callback = function(color) print("ESP color:", color) end
 })
 
 -- ============================================================
 -- 7. MISC TAB
 -- ============================================================
-local MiscSection = MiscTab:CreateSection("Character")
+local MiscBox = MiscTab:AddLeftGroupbox("Character")
 
-MiscSection:CreateSlider({
-    Name     = "WalkSpeed",
+MiscBox:AddSlider(20, {
+    Text     = "WalkSpeed",
+    Default  = 16,
     Min      = 16,
     Max      = 200,
-    Default  = 16,
-    Decimals = 0,
+    Rounding = 0,
+    Suffix   = "",
     Callback = function(value)
         local char = game.Players.LocalPlayer.Character
         if char and char:FindFirstChildOfClass("Humanoid") then
@@ -182,12 +207,13 @@ MiscSection:CreateSlider({
     end
 })
 
-MiscSection:CreateSlider({
-    Name     = "JumpPower",
+MiscBox:AddSlider(21, {
+    Text     = "JumpPower",
+    Default  = 50,
     Min      = 50,
     Max      = 500,
-    Default  = 50,
-    Decimals = 0,
+    Rounding = 0,
+    Suffix   = "",
     Callback = function(value)
         local char = game.Players.LocalPlayer.Character
         if char and char:FindFirstChildOfClass("Humanoid") then
@@ -196,71 +222,35 @@ MiscSection:CreateSlider({
     end
 })
 
-MiscSection:CreateTextbox({
-    Name        = "Chat Message",
+MiscBox:AddInput(22, {
+    Text        = "Chat Message",
+    Default     = "",
     Placeholder = "Type something...",
     Callback    = function(text)
-        game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents")
         print("You typed:", text)
     end
 })
 
-MiscSection:CreateButton({
-    Name = "Reset Character",
-    Callback = function()
+MiscBox:AddButton({
+    Text = "Reset Character",
+    Func = function()
         local char = game.Players.LocalPlayer.Character
-        if char then
-            char:BreakJoints()
-        end
+        if char then char:BreakJoints() end
+    end
+})
+
+local MiscBoxRight = MiscTab:AddRightGroupbox("Notifications")
+
+MiscBoxRight:AddButton({
+    Text = "Send Notification",
+    Func = function()
+        Library:Notify("This is a test notification!", 3)
     end
 })
 
 -- ============================================================
--- 8. CONFIG TAB
+-- 8. INITIAL NOTIFICATION
 -- ============================================================
-local ConfigSection = ConfigTab:CreateSection("Save / Load")
-
-ConfigSection:CreateButton({
-    Name = "Save Config",
-    Callback = function()
-        Library:SaveConfig("myconfig")
-        Library:Notify({ Title = "Saved", Text = "Config saved as 'myconfig'", Duration = 3 })
-    end
-})
-
-ConfigSection:CreateButton({
-    Name = "Load Config",
-    Callback = function()
-        Library:LoadConfig("myconfig")
-        Library:Notify({ Title = "Loaded", Text = "Config 'myconfig' loaded", Duration = 3 })
-    end
-})
-
-ConfigSection:CreateDropdown({
-    Name     = "Select Config",
-    Options  = { "Default", "myconfig" },
-    Default  = "Default",
-    Callback = function(option)
-        print("Selected config:", option)
-    end
-})
-
--- ============================================================
--- 9. NOTIFICATIONS
--- ============================================================
-Library:Notify({
-    Title    = "Example Hub",
-    Text     = "Loaded successfully!",
-    Duration = 4,
-    Icon     = "rbxassetid://6031075931"
-})
-
--- ============================================================
--- 10. CLEANUP (optional)
--- ============================================================
--- Uncomment to remove the UI after 60 seconds:
--- task.delay(60, function()
---     Library:Destroy()
--- end)
+Library:Notify("Example Hub loaded successfully!", 4)
 
 print("[Example Hub] Script loaded.")
