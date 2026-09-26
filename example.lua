@@ -2,6 +2,7 @@
     ============================================================
     Sleepy Hub UI (Mobile Port) - Example Script
     - Library no longer creates the Toggle UI button
+    - Library has the double-toggle bug fixed
     - This script creates its own standalone Toggle UI button
       in a separate ScreenGui so it can never be hidden by
       the menu itself.
@@ -40,7 +41,6 @@ if is_mobile then
     toggle_gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
     toggle_gui.DisplayOrder = 99999
 
-    -- Prefer CoreGui, fall back to PlayerGui
     local ok = pcall(function()
         toggle_gui.Parent = game:GetService("CoreGui")
     end)
