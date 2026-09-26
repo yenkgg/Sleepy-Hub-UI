@@ -1,18 +1,97 @@
 --[[
     ============================================================
     Sleepy Hub UI (Mobile Port) - Example Script
+    - Fixes the "Toggle UI button hides itself" bug
     ============================================================
-    Full working example with tabs, sections, toggles, sliders,
-    dropdowns, colorpickers, keybinds, buttons, textboxes, and
-    the mobile "Toggle UI" button.
 ]]
 
 -- ============================================================
--- 1. LOAD THE LIBRARY
+-- 1. FETCH + PATCH + LOAD THE LIBRARY
 -- ============================================================
-local Library = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/yenkgg/Sleepy-Hub-UI/refs/heads/main/Library.lua"
-))()
+local LIB_URL = "https://raw.githubusercontent.com/yenkgg/Sleepy-Hub-UI/refs/heads/main/Library.lua"
+
+local src = game:HttpGet(LIB_URL)
+
+-- [PATCH] Replace the buggy Toggle UI button creation so that it
+-- lives in its own ScreenGui instead of inside library["items"].
+-- The original block starts with `-- [MOBILE] Toggle UI button`
+-- and ends with the closing `end` of the `if is_mobile then` block.
+-- We replace the whole block with a fixed version.
+
+local patched_block = [[
+            -- [MOBILE] Toggle UI button (PATCHED: separate ScreenGui)
+            if is_mobile then
+                local toggle_gui = library:create("ScreenGui", {
+                    Parent = coregui;
+                    Name = "\0";
+                    Enabled = true;
+                    ZIndexBehavior = Enum.ZIndexBehavior.Global;
+                    IgnoreGuiInset = true;
+                    DisplayOrder = 99999;
+                })
+
+                items[ "toggle_ui_button" ] = library:create( "TextButton" , {
+                    Parent = toggle_gui;
+                    Name = "\0";
+                    Size = dim_offset(120, 40);
+                    Position = dim_offset(16, 16);
+                    BackgroundColor3 = themes.preset.accent;
+                    BackgroundTransparency = 0.35;
+                    BorderSizePixel = 0;
+                    Text = "Toggle UI";
+                    TextColor3 = rgb(255, 255, 255);
+                    TextSize = 15;
+                    FontFace = fonts.font;
+                    AutoButtonColor = false;
+                    ZIndex = 999;
+                    Active = true;
+                    Draggable = true;
+                });
+
+                library:create( "UICorner" , {
+                    Parent = items[ "toggle_ui_button" ];
+                    CornerRadius = dim(0, 8)
+                });
+
+                library:create( "UIStroke" , {
+                    Parent = items[ "toggle_ui_button" ];
+                    Color = rgb(255, 255, 255);
+                    Transparency = 0.6;
+                    ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
+                });
+
+                local function do_toggle()
+                    library[ "items" ].Enabled = not library[ "items" ].Enabled
+                end
+
+                items[ "toggle_ui_button" ].MouseButton1Click:Connect(do_toggle)
+                items[ "toggle_ui_button" ].TouchTap:Connect(do_toggle)
+
+                items[ "toggle_ui_button" ].MouseButton1Down:Connect(function()
+                    library:tween(items[ "toggle_ui_button" ], {BackgroundTransparency = 0.6}, Enum.EasingStyle.Quad, 0.1)
+                end)
+                items[ "toggle_ui_button" ].MouseButton1Up:Connect(function()
+                    library:tween(items[ "toggle_ui_button" ], {BackgroundTransparency = 0.35}, Enum.EasingStyle.Quad, 0.1)
+                end)
+            end
+]]
+
+-- Find and replace the original buggy block
+local start_marker = "%-%- %[MOBILE%] Toggle UI button"
+local _, start_idx = src:find(start_marker)
+if start_idx then
+    -- Find the matching "end" of the `if is_mobile then` block
+    -- by scanning forward for the next "-- return setmetatable" (which follows it)
+    local tail_marker = "return setmetatable%(cfg, library%)"
+    local _, tail_idx = src:find(tail_marker, start_idx)
+    if tail_idx then
+        -- Back up to the start of that line's "return"
+        local return_start = src:sub(1, tail_idx):find("return setmetatable")
+        src = src:sub(1, start_idx - 1) .. patched_block .. "\n            " .. src:sub(return_start)
+    end
+end
+
+local Library = (loadstring or load)(src, "Milenium")()
 
 -- ============================================================
 -- 2. CREATE THE WINDOW
@@ -31,7 +110,6 @@ window:seperator({ name = "Main" })
 local mainTab = window:tab({ name = "Main", tabs = { "Main" } })
 
 do
-    -- Left column
     local leftColumn  = mainTab:column({})
     local leftSection = leftColumn:section({
         name    = "General",
@@ -89,9 +167,7 @@ do
         items     = { "Legit", "Rage", "Custom" },
         default   = "Legit",
         seperator = true,
-        callback  = function(option)
-            print("[Example] Mode:", option)
-        end
+        callback  = function(option) print("[Example] Mode:", option) end
     })
 
     leftSection:dropdown({
@@ -107,7 +183,6 @@ do
         end
     })
 
-    -- Right column
     local rightColumn  = mainTab:column({})
     local rightSection = rightColumn:section({
         name    = "Appearance",
@@ -135,9 +210,7 @@ do
 
     rightSection:button({
         name     = "Print Hello",
-        callback = function()
-            print("[Example] Hello!")
-        end
+        callback = function() print("[Example] Hello!") end
     })
 
     rightSection:button({
@@ -151,14 +224,12 @@ do
     rightSection:textbox({
         name        = "Your Name",
         placeholder = "Type here...",
-        callback    = function(text)
-            print("[Example] Typed:", text)
-        end
+        callback    = function(text) print("[Example] Typed:", text) end
     })
 end
 
 -- ============================================================
--- 4. VISUALS TAB  (multi-tab: Enemies / Teammates / Self)
+-- 4. VISUALS TAB
 -- ============================================================
 window:seperator({ name = "Visuals" })
 
@@ -175,43 +246,19 @@ for _, tab in { enemiesTab, teammatesTab, selfTab } do
         icon    = "rbxassetid://6022668898"
     })
 
-    section:toggle({
-        name      = "Enable ESP",
-        default   = false,
-        seperator = true,
-        callback  = function(bool) print("ESP:", bool) end
-    })
+    section:toggle({ name = "Enable ESP", default = false, seperator = true })
+    section:toggle({ name = "Through Walls", default = false, seperator = true })
 
-    section:toggle({
-        name      = "Through Walls",
-        default   = false,
-        seperator = true
-    })
-
-    -- Toggle with chained colorpicker
-    section:toggle({
-        name      = "Box",
-        default   = true,
-        seperator = true
-    }):colorpicker({
+    section:toggle({ name = "Box", default = true, seperator = true }):colorpicker({
         name  = "Box Color",
         color = Color3.fromRGB(255, 60, 60)
     })
 
-    -- Toggle with a nested settings sub-menu
-    local nameToggle = section:toggle({
-        name      = "Name",
-        default   = true,
-        seperator = true
-    })
+    local nameToggle = section:toggle({ name = "Name", default = true, seperator = true })
     nameToggle:colorpicker({ name = "Name Color" })
 
     local nameSettings = nameToggle:settings({})
-    nameSettings:toggle({
-        name      = "Show Display Names",
-        default   = false,
-        seperator = true
-    })
+    nameSettings:toggle({ name = "Show Display Names", default = false, seperator = true })
     nameSettings:dropdown({
         name      = "Font",
         items     = { "ProggyTiny", "MonoSpace", "Tahoma" },
@@ -239,7 +286,7 @@ for _, tab in { enemiesTab, teammatesTab, selfTab } do
 end
 
 -- ============================================================
--- 5. MISC TAB  (two half-width sections side by side)
+-- 5. MISC TAB
 -- ============================================================
 window:seperator({ name = "Misc" })
 
@@ -273,7 +320,7 @@ do
 end
 
 -- ============================================================
--- 6. LOAD NOTIFICATION
+-- 6. NOTIFICATION
 -- ============================================================
 task.delay(1, function()
     Library.notifications:create_notification({
@@ -284,7 +331,7 @@ task.delay(1, function()
 end)
 
 -- ============================================================
--- 7. INIT CONFIG TAB (built-in Configs tab)
+-- 7. INIT CONFIG TAB
 -- ============================================================
 Library:init_config(window)
 
