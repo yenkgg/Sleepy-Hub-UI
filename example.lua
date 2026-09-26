@@ -1,6 +1,7 @@
 --[[
+    ============================================================
     Example script for Sleepy Hub UI Library
-    Place this in your executor and run it.
+    ============================================================
 ]]
 
 -- ============================================================
@@ -14,13 +15,13 @@ local Library = loadstring(game:HttpGet(
 -- 2. CREATE THE WINDOW
 -- ============================================================
 local Window = Library:CreateWindow({
-    Title       = "Example Hub",
-    Center      = true,                    -- auto-center on screen
-    AutoShow    = true,                    -- show immediately
-    Font        = Enum.Font.Code,
-    Size        = UDim2.fromOffset(620, 520),
-    ToggleKeybind = Enum.KeyCode.RightShift -- shows/hides the UI
+    Title    = "Example Hub",
+    Center   = true,
+    AutoShow = true
 })
+
+-- Optional: set the toggle keybind after creation
+Library.ToggleKeybind = Enum.KeyCode.RightShift
 
 -- ============================================================
 -- 3. CREATE TABS
@@ -84,7 +85,7 @@ AimbotBox:AddToggle(1, {
 AimbotBox:AddKeyPicker(2, {
     Default  = "E",
     Text     = "Aimbot Key",
-    Mode     = "Toggle",           -- "Always" | "Toggle" | "Hold"
+    Mode     = "Toggle",
     Callback = function(state)
         print("Aimbot key state:", state)
     end
@@ -95,7 +96,7 @@ AimbotBox:AddSlider(3, {
     Default  = 90,
     Min      = 0,
     Max      = 360,
-    Rounding = 0,                  -- 0 = integer, 1 = 1 decimal
+    Rounding = 0,
     Suffix   = "°",
     Callback = function(value)
         print("FOV:", value)
@@ -118,7 +119,7 @@ AimbotBox:AddDropdown(5, {
     Text     = "Target Part",
     Values   = { "Head", "Torso", "Nearest", "Random" },
     Default  = "Head",
-    Multi    = false,              -- set true for multiselect
+    Multi    = false,
     Callback = function(option)
         print("Targeting:", option)
     end
@@ -127,7 +128,7 @@ AimbotBox:AddDropdown(5, {
 AimbotBox:AddDropdown(6, {
     Text     = "Target Teams",
     Values   = { "Enemies", "Neutrals", "Allies" },
-    Default  = { "Enemies" },      -- table = multi
+    Default  = { "Enemies" },
     Multi    = true,
     Callback = function(selected)
         local str = ""
