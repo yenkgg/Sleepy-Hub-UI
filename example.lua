@@ -1,18 +1,62 @@
 --[[
-    ============================================================
-    Milenium / Nebula UI - Example Script
-    ============================================================
-    Loads the library and builds a demo menu with tabs, sections,
-    toggles, sliders, dropdowns, colorpickers, keybinds, buttons,
-    textboxes, and lists.
+    Milenium / Nebula UI - Example Script (with load diagnostics)
 ]]
 
 -- ============================================================
--- 1. LOAD THE LIBRARY
+-- 1. LOAD THE LIBRARY (with error checking)
 -- ============================================================
-local library = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/i77lhm/Libraries/refs/heads/main/Millenium/Library.lua"
-))()
+local LIB_URL = "https://raw.githubusercontent.com/i77lhm/Libraries/refs/heads/main/Millenium/Library.lua"
+
+local function fetchSource(url)
+    -- Try every common method so we know which one works
+    local methods = {
+        function() return game:HttpGet(url) end,
+        function() return game:HttpGetAsync(url) end,
+        function() return request({ Url = url, Method = "GET" }).Body end,
+        function() return syn.request({ Url = url, Method = "GET" }).Body end,
+        function() return http_request({ Url = url, Method = "GET" }).Body end,
+    }
+
+    for i, fn in ipairs(methods) do
+        local ok, res = pcall(fn)
+        if ok and type(res) == "string" and #res > 0 and not res:find("^<!DOCTYPE") then
+            print("[Loader] Fetch method #" .. i .. " succeeded (" .. #res .. " bytes)")
+            return res
+        end
+    end
+
+    return nil
+end
+
+local src = fetchSource(LIB_URL)
+if not src then
+    error("[Loader] Could not fetch library source from " .. LIB_URL)
+end
+
+local loader = loadstring or load
+local chunk, err = loader(src, "Milenium")
+if not chunk then
+    error("[Loader] Failed to compile library: " .. tostring(err))
+end
+
+local library = chunk()
+
+print("[Loader] Library type:", typeof(library))
+if type(library) ~= "table" then
+    error("[Loader] Library did not return a table. Got: " .. tostring(library))
+end
+
+-- Verify the :window method actually exists before calling it
+local windowMethod = library.window or library.Window
+print("[Loader] library.window =", typeof(windowMethod))
+
+if type(windowMethod) ~= "function" then
+    print("[Loader] Available library methods:")
+    for k, v in pairs(library) do
+        print("  ", k, typeof(v))
+    end
+    error("[Loader] No :window method on library. See list above.")
+end
 
 -- ============================================================
 -- 2. CREATE THE WINDOW
@@ -23,15 +67,16 @@ local window = library:window({
     gameInfo = "Example Hub for Roblox"
 })
 
+print("[Example Hub] Window created.")
+
 -- ============================================================
--- 3. MAIN TAB  (single "Main" sub-tab)
+-- 3. MAIN TAB
 -- ============================================================
 window:seperator({ name = "Main" })
 
 local mainTab = window:tab({ name = "Main", tabs = { "Main" } })
 
 do
-    -- Left column
     local leftColumn  = mainTab:column({})
     local leftSection = leftColumn:section({
         name    = "General",
@@ -62,7 +107,6 @@ do
         suffix    = " ws",
         seperator = true,
         callback  = function(value)
-            print("[Example] Speed:", value)
             local char = game.Players.LocalPlayer.Character
             if char and char:FindFirstChildOfClass("Humanoid") then
                 char:FindFirstChildOfClass("Humanoid").WalkSpeed = value
@@ -76,7 +120,6 @@ do
         max       = 500,
         interval  = 5,
         default   = 50,
-        suffix    = "",
         seperator = true,
         callback  = function(value)
             local char = game.Players.LocalPlayer.Character
@@ -109,7 +152,6 @@ do
         end
     })
 
-    -- Right column
     local rightColumn  = mainTab:column({})
     local rightSection = rightColumn:section({
         name    = "Appearance",
@@ -135,14 +177,6 @@ do
         end
     })
 
-    rightSection:keybind({
-        name     = "Panic Key",
-        mode     = "Hold",
-        callback = function(active)
-            print("[Example] Panic:", active)
-        end
-    })
-
     rightSection:button({
         name     = "Print Hello",
         callback = function()
@@ -160,7 +194,7 @@ do
 end
 
 -- ============================================================
--- 4. VISUALS TAB  (multi-tab: Enemies / Teammates / Self)
+-- 4. VISUALS TAB
 -- ============================================================
 window:seperator({ name = "Visuals" })
 
@@ -177,35 +211,15 @@ for _, tab in { enemiesTab, teammatesTab, selfTab } do
         icon    = "rbxassetid://6022668898"
     })
 
-    section:toggle({
-        name      = "Enable ESP",
-        default   = false,
-        seperator = true,
-        callback  = function(bool) print("ESP:", bool) end
-    })
+    section:toggle({ name = "Enable ESP",      default = false, seperator = true })
+    section:toggle({ name = "Through Walls",   default = false, seperator = true })
 
-    section:toggle({
-        name      = "Through Walls",
-        default   = false,
-        seperator = true
-    })
-
-    -- Toggle with a chained colorpicker
-    section:toggle({
-        name      = "Box",
-        default   = true,
-        seperator = true
-    }):colorpicker({
+    section:toggle({ name = "Box", default = true, seperator = true }):colorpicker({
         name  = "Box Color",
         color = Color3.fromRGB(255, 60, 60)
     })
 
-    -- Toggle with a settings sub-menu
-    local nameToggle = section:toggle({
-        name      = "Name",
-        default   = true,
-        seperator = true
-    })
+    local nameToggle = section:toggle({ name = "Name", default = true, seperator = true })
     nameToggle:colorpicker({ name = "Name Color" })
 
     local nameSettings = nameToggle:settings({})
@@ -241,7 +255,7 @@ for _, tab in { enemiesTab, teammatesTab, selfTab } do
 end
 
 -- ============================================================
--- 5. MISC TAB  (2-column layout with sub-tab)
+-- 5. MISC TAB
 -- ============================================================
 window:seperator({ name = "Misc" })
 
@@ -250,34 +264,22 @@ local miscTab = window:tab({ name = "Misc", tabs = { "Misc" } })
 do
     local column = miscTab:column({})
 
-    -- Two side-by-side sections using size = 0.5
     local sectionA = column:section({
-        name    = "Section A",
-        default = true,
-        size    = 0.5,
-        icon    = "rbxassetid://6022668898"
+        name = "Section A", default = true, size = 0.5,
+        icon = "rbxassetid://6022668898"
     })
     sectionA:toggle({ name = "A Toggle 1", default = false, seperator = true })
     sectionA:toggle({ name = "A Toggle 2", default = true,  seperator = true })
-    sectionA:button({
-        name     = "A Button",
-        callback = function() print("A pressed") end
-    })
+    sectionA:button({ name = "A Button", callback = function() print("A pressed") end })
 
     local sectionB = column:section({
-        name    = "Section B",
-        default = true,
-        size    = 0.5,
-        icon    = "rbxassetid://6022668898"
+        name = "Section B", default = true, size = 0.5,
+        icon = "rbxassetid://6022668898"
     })
     sectionB:toggle({ name = "B Toggle 1", default = false, seperator = true })
     sectionB:slider({
-        name      = "B Slider",
-        min       = 0,
-        max       = 100,
-        interval  = 1,
-        default   = 50,
-        seperator = true
+        name = "B Slider", min = 0, max = 100, interval = 1,
+        default = 50, seperator = true
     })
     sectionB:textbox({
         name        = "B Textbox",
@@ -287,7 +289,7 @@ do
 end
 
 -- ============================================================
--- 6. TEST NOTIFICATION  (fires 2 seconds after load)
+-- 6. TEST NOTIFICATION
 -- ============================================================
 task.delay(2, function()
     library.notifications:create_notification({
@@ -298,7 +300,7 @@ task.delay(2, function()
 end)
 
 -- ============================================================
--- 7. INIT CONFIG TAB (adds a built-in Configs tab)
+-- 7. INIT CONFIG TAB
 -- ============================================================
 library:init_config(window)
 
